@@ -37,7 +37,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    주문 상태 머신                           │
+│                    주문 상태 머신                          │
 └─────────────────────────────────────────────────────────┘
 
     ┌──────────┐     CREATE      ┌──────────┐
@@ -81,40 +81,40 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Spring State Machine 아키텍처                │
+│                    Spring State Machine 아키텍처                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────┐    ┌─────────────────┐                    │
 │  │ StateMachine    │    │ StateMachine    │                    │
 │  │ Factory         │───→│ (Instance)      │                    │
-│  │                 │    │ 주문ID별 생성    │                    │
+│  │                 │    │ 주문ID별 생성    │                      │
 │  └─────────────────┘    └─────────────────┘                    │
-│                               │                                 │
-│                               ↓                                 │
+│                               │                                │
+│                               ↓                                │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    State Machine Core                    │   │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐    │   │
-│  │  │ States  │  │ Events  │  │ Guards  │  │ Actions │    │   │
-│  │  │ CREATED │  │ PAY     │  │결제검증 │  │결제처리 │    │   │
-│  │  │ PAID    │  │ SHIP    │  │재고확인 │  │재고차감 │    │   │
-│  │  │ SHIPPED │  │ DELIVER │  │배송검증 │  │알림발송 │    │   │
-│  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘    │   │
-│  │                      │                                   │   │
-│  │                      ↓                                   │   │
+│  │                    State Machine Core                   │   │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐     │   │
+│  │  │ States  │  │ Events  │  │ Guards  │  │ Actions │     │   │
+│  │  │ CREATED │  │ PAY     │  │결제검증 │  │결제처리 │    │    │   │
+│  │  │ PAID    │  │ SHIP    │  │재고확인 │  │재고차감 │    │    │   │
+│  │  │ SHIPPED │  │ DELIVER │  │배송검증 │  │알림발송 │    │    │   │
+│  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘     │   │
+│  │                      │                                  │   │
+│  │                      ↓                                  │   │
 │  │              ┌─────────────┐                            │   │
 │  │              │ Transitions │                            │   │
 │  │              └─────────────┘                            │   │
 │  └─────────────────────────────────────────────────────────┘   │
-│                               │                                 │
-│                               ↓                                 │
+│                               │                                │
+│                               ↓                                │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    Persistence Layer                     │   │
+│  │                    Persistence Layer                    │   │
 │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐                  │   │
-│  │  │  Redis  │  │   JPA   │  │ In-Memory│                  │   │
+│  │  │  Redis  │  │   JPA   │  │ In-Memory│                 │   │
 │  │  └─────────┘  └─────────┘  └─────────┘                  │   │
 │  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 주요 인터페이스
@@ -314,7 +314,7 @@ StateMachine<OrderStatus, OrderEvent> buildStateMachine() {
    └───────────┘
 ```
 
-```java
+```
 states
     .withStates()
     .initial(OrderStatus.CREATED)
@@ -830,8 +830,7 @@ public class OrderService {
             Mono.just(MessageBuilder.withPayload(event).build())
         ).blockLast();
 
-        return result != null &&
-            result.getResultType() == StateMachineEventResult.ResultType.ACCEPTED;
+        return false;
     }
 
     private void persistAndSave(StateMachine<OrderStatus, OrderEvent> sm, Order order) {
@@ -1043,7 +1042,8 @@ public OrderStatus getStatus(Order order) {
     if (order.getPaidAt() != null) return PAID;
     return CREATED;
 }
-
+```
+```
 // SSM 방식: 선언적 정의
 .withExternal()
     .source(CREATED).target(PAID).event(PAY)
@@ -1095,7 +1095,8 @@ enum OrderStatus {
     PENDING_APPROVAL,   // 승인 대기
     ON_HOLD             // 보류
 }
-
+```
+```
 // 새로운 전이 규칙 추가가 용이
 transitions.withExternal()
     .source(CREATED).target(PENDING_APPROVAL).event(SUBMIT_FOR_APPROVAL)
@@ -1127,9 +1128,8 @@ public CampaignStatus calculateStatus(List<AdGroupStatus> statuses) {
     }
     // ...계산 로직
 }
-
-→ SSM보다는 Calculator 패턴이 적합
 ```
+→ SSM보다는 Calculator 패턴이 적합
 
 #### 3. 실시간 시간 기반 전이가 필요한 경우
 
@@ -1179,7 +1179,7 @@ After: 중앙화된 상태 관리
 
 #### 2. 선언적이고 가독성 높은 코드
 
-```java
+```
 // 상태 전이 규칙이 한눈에 파악됨
 transitions
     .withExternal().source(CREATED).target(PAID)
@@ -1192,7 +1192,7 @@ transitions
 
 #### 3. 잘못된 상태 전이 방지
 
-```java
+```
 // SSM이 자동으로 유효하지 않은 전이를 거부
 // CREATED에서 바로 SHIPPED로 전이 시도 → 거부됨
 stateMachine.sendEvent(OrderEvent.SHIP);  // false 반환
@@ -1263,7 +1263,7 @@ public class AuditListener extends StateMachineListenerAdapter {
 
 #### 2. 복잡성 증가 (단순한 케이스에서)
 
-```java
+```
 // 단순한 활성/비활성 토글에 SSM 적용 시 오버엔지니어링
 // Before: 1줄
 entity.setActive(!entity.isActive());
@@ -1337,27 +1337,27 @@ public Action<OrderStatus, OrderEvent> processPaymentAction() {
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│             Spring State Machine 핵심 구성              │
+│             Spring State Machine 핵심 구성                │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  State (상태)                                           │
-│  └─ CREATED, PAID, SHIPPED, DELIVERED, CANCELLED, ... │
+│  State (상태)                                            │
+│  └─ CREATED, PAID, SHIPPED, DELIVERED, CANCELLED, ...   │
 │                                                         │
-│  Event (이벤트)                                         │
-│  └─ PAY, SHIP, DELIVER, CANCEL, RETURN, REFUND, ...   │
+│  Event (이벤트)                                           │
+│  └─ PAY, SHIP, DELIVER, CANCEL, RETURN, REFUND, ...     │
 │                                                         │
-│  Transition (전이)                                      │
-│  └─ CREATED → PAID (결제)                              │
-│  └─ PAID → SHIPPED (배송 시작)                         │
+│  Transition (전이)                                       │
+│  └─ CREATED → PAID (결제)                                │
+│  └─ PAID → SHIPPED (배송 시작)                            │
 │                                                         │
-│  Guard (가드)                                           │
-│  └─ 결제 가능 여부 검증                                 │
-│  └─ 재고 확인                                           │
-│                                                         │
+│  Guard (가드)                                            │
+│  └─ 결제 가능 여부 검증                                     │
+│  └─ 재고 확인                                             │
+│                                                        │
 │  Action (액션)                                          │
-│  └─ 결제 처리 (PG 연동)                                │
-│  └─ 재고 차감                                           │
-│  └─ 알림 발송                                           │
+│  └─ 결제 처리 (PG 연동)                                    │
+│  └─ 재고 차감                                             │
+│  └─ 알림 발송                                             │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -1391,7 +1391,39 @@ public Action<OrderStatus, OrderEvent> processPaymentAction() {
    └─ Listener를 통한 상태 전이 로깅
 ```
 
-### 6.4 결론
+### 6.4 대안 고려
+SSM 도입 전에 먼저 고려할 수 있는 대안 (디자인 패턴 적용)
+```java
+// 1. State Pattern (상태 패턴 적용)  
+interface OrderState {  
+    void pay(Order order);    
+  void cancel(Order order);
+}  
+class PendingState implements OrderState {  
+    @Override public void pay(Order order) {        // 결제 처리 후 상태 변경  
+        order.setState(new PaidState());    
+    }
+}  
+// 2. 상태 전이 규칙 명시화
+enum OrderTransition {
+    PENDING_TO_PAID(PENDING, PAID, "결제"),  
+    PAID_TO_SHIPPED(PAID, SHIPPED, "배송시작");  
+    
+    public boolean isValid(OrderStatus current, OrderStatus target) 
+    {        
+        return this.source == current && this.target == target;    
+    }
+}  
+// 3. Validator 클래스 분리
+class OrderStateValidator {  
+    public boolean canTransition(OrderStatus from, OrderStatus to)
+    {
+        return ALLOWED_TRANSITIONS.contains(Pair.of(from, to));
+    }
+}  
+```
+
+### 6.5 결론
 
 Spring State Machine은 **복잡한 상태 관리가 필요한 도메인**에서 강력한 도구입니다.
 
